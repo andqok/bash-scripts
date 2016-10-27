@@ -1,25 +1,24 @@
 #!/bin/bash
 
 #needs indstalling lltag and flacon
+#changes globas system variable IFS, which is in principle a bad thing
+#I know no other way to handla spaces in filemanes properly
 
-cue=$(find *.cue)
-flac=$(find *.flac)
-log=$(find *.log)
-ape=$(find *.ape)
+IFS=$'\n'
 
-echo $flac
-echo $cue
-echo $ape
+flac=( `find *.flac` )
+ape=( `find *.ape` )
+cue=( `find *.cue` )
 
-if [ -e "$flac" ]
-then
-shnsplit -f "$cue" -t "%n - %t" -o flac "$flac" && rm "$cue" "$flac" "$log"
-fi
+for ((i=0;i<${#ape[@]};++i)); do
+    echo ${ape[i]}
+    echo ${cue[i]}
+    cuebreakpoints ${cue[i]} | shnsplit -o flac ${ape[i]} &&
+    cuetag "${cue[i]}" split-track*.flac &&
+    lltag --yes --no-tagging --rename '%n - %t' `ls split-track*.flac` &&
+    rm ${cue[i]} ${ape[i]}
+done
 
-if [ -e "$ape" ]
-then
-cuebreakpoints "$cue" | shnsplit -o flac "$ape" &&
-cuetag "$cue" split-track*.flac &&
-lltag --yes --no-tagging --rename '%n - %t' `ls split-track*.flac` &&
-rm "$cue" "$ape" "$log"
-fi
+for ((i=0;i<${#flac[@]};++i)); do
+    shnsplit -f "${cue[i]}" -t "%n - %t" -o flac "${flac[i]}" && rm "${cue[i]}" "${flac[i]}" "${log[i]}"
+done
